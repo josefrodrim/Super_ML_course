@@ -1,0 +1,9 @@
+notebooks/
+__pycache__/
+.DS_Store
+.venv/
+train.py
+requirements-dev.txt
+data/riesgo_tarjetas_hist.csv
+data/campana_202611_scored.csv
+.env*
