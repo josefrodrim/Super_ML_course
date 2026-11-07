@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Score de riesgo de tarjetas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF2F6; --surface:#FFFFFF; --ink:#102A43; --muted:#52606D; --line:#CBD5E1; --accent:#1F4E79;
+  --b5:#A61B1B; --b4:#D9621E; --b3:#E5B53A; --b2:#4F9D69; --b1:#1E6B52;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0E1A26; --surface:#15263A; --ink:#E6EDF5; --muted:#9FB0C2; --line:#2B4058; --accent:#7FB2E5; color-scheme:dark;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1040px;margin:0 auto;padding:32px 20px 64px}
+h1{font-size:1.9rem;line-height:1.2;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 28px}
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:24px}
+.tabs button{background:none;border:0;padding:10px 16px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--accent)}
+.panel{display:none}.panel.on{display:block}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:24px}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:22px}
+label{display:block;font-weight:600;font-size:.92rem;margin:0 0 4px}
+.hint{font-weight:400;color:var(--muted)}
+input[type=number],input[type=file]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);font:inherit;margin-bottom:14px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:4px;padding:11px 18px;font:inherit;font-weight:600;cursor:pointer}
+@media (prefers-color-scheme:dark){.btn{color:#0E1A26}}
+.btn.sec{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+:focus-visible{outline:3px solid var(--b3);outline-offset:2px}
+.prob{font-size:3rem;font-weight:700;line-height:1;margin:8px 0 6px;font-variant-numeric:tabular-nums}
+.banda{display:inline-block;padding:3px 10px;border-radius:3px;color:#fff;font-weight:700}
+.ruler{position:relative;display:grid;grid-template-columns:repeat(5,1fr);height:18px;margin:26px 0 6px;border-radius:3px;overflow:visible}
+.ruler span{display:block}
+.ruler span:nth-child(1){background:var(--b1)}.ruler span:nth-child(2){background:var(--b2)}.ruler span:nth-child(3){background:var(--b3)}.ruler span:nth-child(4){background:var(--b4)}.ruler span:nth-child(5){background:var(--b5)}
+.marker{position:absolute;top:-10px;width:4px;height:38px;background:var(--ink);transform:translateX(-2px);transition:left .4s ease}
+.ruler-lbl{display:grid;grid-template-columns:repeat(5,1fr);font-size:.8rem;color:var(--muted);text-align:center}
+.empty{color:var(--muted)}
+.stack{display:flex;height:28px;border-radius:3px;overflow:hidden;margin:16px 0}
+.stack div{height:100%}
+table{width:100%;border-collapse:collapse;font-size:.92rem;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;vertical-align:middle}
+.scroll{overflow-x:auto}
+.err{color:var(--b5);font-weight:600}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+footer{color:var(--muted);font-size:.85rem;margin-top:40px}
+@media (prefers-reduced-motion:reduce){.marker{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Score de riesgo de tarjetas</h1>
+  <p class="sub">Probabilidad de default en los próximos 3 meses y banda de riesgo para campañas.</p>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-p="uno">Evaluar un cliente</button>
+    <button role="tab" aria-selected="false" data-p="camp">Puntuar campaña del mes</button>
+  </div>
+
+  <section id="uno" class="panel on">
+    <div class="grid">
+      <form id="f" class="box">
+        <div class="fields">
+          <div><label for="edad">Edad <span class="hint">años</span></label><input id="edad" type="number" min="18" max="100" value="35" required></div>
+          <div><label for="ingreso_mensual">Ingreso mensual <span class="hint">S/</span></label><input id="ingreso_mensual" type="number" min="0" step="10" value="3500" required></div>
+          <div><label for="antiguedad_meses">Antigüedad <span class="hint">meses</span></label><input id="antiguedad_meses" type="number" min="0" value="24" required></div>
+          <div><label for="utilizacion_linea">Uso de la línea <span class="hint">%</span></label><input id="utilizacion_linea" type="number" min="0" max="150" step="0.1" value="40" required></div>
+          <div><label for="max_dias_atraso_6m">Máx. atraso <span class="hint">días, 6 m</span></label><input id="max_dias_atraso_6m" type="number" min="0" max="360" value="0" required></div>
+          <div><label for="consultas_3m">Consultas <span class="hint">en centrales, 3 m</span></label><input id="consultas_3m" type="number" min="0" max="50" value="1" required></div>
+        </div>
+        <button class="btn" type="submit">Calcular score</button>
+      </form>
+      <div class="box" id="res" aria-live="polite">
+        <p class="empty">Completa los datos del cliente y calcula su score.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="camp" class="panel">
+    <div class="box">
+      <label for="archivo">Archivo del mes <span class="hint">.txt o .csv separado por | , ; o tabulación</span></label>
+      <input id="archivo" type="file" accept=".txt,.csv">
+      <p class="hint" style="margin-top:-6px">Columnas: id_cliente, edad, ingreso_mensual, antiguedad_meses, utilizacion_linea, max_dias_atraso_6m, consultas_3m</p>
+      <button class="btn" id="go">Puntuar archivo</button>
+      <div id="cres" aria-live="polite" style="margin-top:20px"></div>
+    </div>
+  </section>
+
+  <footer id="foot">Curso Machine Learning · Josef Renato Rodriguez</footer>
+</main>
+<script>
+const COL={"Muy alto":"var(--b5)","Alto":"var(--b4)","Medio":"var(--b3)","Bajo":"var(--b2)","Muy bajo":"var(--b1)"};
+const ORD=["Muy bajo","Bajo","Medio","Alto","Muy alto"];
+const $=s=>document.querySelector(s);
+const fmtPct=p=>(p*100).toFixed(1)+"%";
+
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("on",p.id===b.dataset.p));
+});
+
+fetch("/api/info").then(r=>r.json()).then(i=>{
+  $("#foot").textContent=`Curso Machine Learning · Josef Renato Rodriguez · modelo ${i.version} · AUC test ${i.metricas.test.auc}`;
+}).catch(()=>{});
+
+$("#f").onsubmit=async e=>{
+  e.preventDefault();
+  const body={};
+  ["edad","ingreso_mensual","antiguedad_meses","utilizacion_linea","max_dias_atraso_6m","consultas_3m"].forEach(k=>body[k]=Number($("#"+k).value));
+  const r=await fetch("/api/score",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const d=await r.json();
+  if(!r.ok){$("#res").innerHTML=`<p class="err">Revisa los datos: ${(d.detail||[]).map?d.detail.map(x=>x.loc.at(-1)+": "+x.msg).join("; "):d.detail}</p>`;return;}
+  const i=ORD.indexOf(d.banda);
+  $("#res").innerHTML=`<label>Probabilidad de default (3 meses)</label>
+    <div class="prob">${fmtPct(d.prob_default)}</div>
+    <span class="banda" style="background:${COL[d.banda]};color:${d.banda==="Medio"?"#102A43":"#fff"}">${d.banda}</span>
+    <div class="ruler"><span></span><span></span><span></span><span></span><span></span><div class="marker" style="left:${i*20+10}%"></div></div>
+    <div class="ruler-lbl">${ORD.map(b=>`<div>${b}</div>`).join("")}</div>`;
+};
+
+let ultimo=null;
+$("#go").onclick=async()=>{
+  const f=$("#archivo").files[0];
+  if(!f){$("#cres").innerHTML='<p class="err">Elige un archivo para puntuar.</p>';return;}
+  $("#cres").innerHTML='<p class="empty">Puntuando…</p>';
+  const fd=new FormData();fd.append("archivo",f);
+  const r=await fetch("/api/campana",{method:"POST",body:fd});
+  const d=await r.json();
+  if(!r.ok){$("#cres").innerHTML=`<p class="err">${d.detail}</p>`;return;}
+  ultimo=d;
+  const stack=d.resumen.map(x=>`<div title="${x.banda}: ${x.pct}%" style="width:${x.pct}%;background:${COL[x.banda]}"></div>`).join("");
+  const filas=d.resumen.map(x=>`<tr><td><span class="dot" style="background:${COL[x.banda]}"></span>${x.banda}</td><td>${x.clientes.toLocaleString("es-PE")}</td><td>${x.pct.toFixed(1)}%</td><td>20.0%</td><td>${fmtPct(x.prob_media)}</td></tr>`).join("");
+  const rech=d.filas_rechazadas?`<p class="err">${d.filas_rechazadas} filas rechazadas por datos faltantes o fuera de rango (ej.: ${d.ids_rechazados.slice(0,5).join(", ")}).</p>`:"";
+  $("#cres").innerHTML=`<p><strong>${d.archivo}</strong>: ${d.filas_validas.toLocaleString("es-PE")} clientes puntuados de ${d.filas_leidas.toLocaleString("es-PE")}.</p>${rech}
+    <div class="stack">${stack}</div>
+    <p>PSI frente al desarrollo: <strong>${d.psi.toFixed(3)}</strong> ${d.psi<0.1?"(estable)":d.psi<0.25?"(cambio moderado: vigilar)":"(cambio fuerte: revisar el modelo)"}</p>
+    <div class="scroll"><table><thead><tr><th>Banda</th><th>Clientes</th><th>% del archivo</th><th>% desarrollo</th><th>Prob. media</th></tr></thead><tbody>${filas}</tbody></table></div>
+    <div class="row"><button class="btn" id="dl">Descargar clientes con banda (.csv)</button><span class="hint">Ordenado de Muy alto a Muy bajo</span></div>`;
+  $("#dl").onclick=descargar;
+};
+
+function descargar(){
+  const cols=Object.keys(ultimo.clientes[0]);
+  const csv=[cols.join(",")].concat(ultimo.clientes.map(c=>cols.map(k=>c[k]).join(","))).join("\n");
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv"}));
+  a.download=ultimo.archivo.replace(/\.(txt|csv)$/i,"")+"_scored.csv";a.click();
+}
+</script>
+</body>
+</html>
