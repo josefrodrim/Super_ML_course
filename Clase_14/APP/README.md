@@ -27,6 +27,8 @@ uvicorn app:app --reload      # http://127.0.0.1:8000  y  /docs
 | POST | `/api/campana` | Archivo `.txt/.csv` → resumen por banda, PSI y clientes puntuados |
 
 ## Publicar en Vercel
+Guía completa para alumnos, de inicio a fin: [`../GUIA_PASO_A_PASO.md`](../GUIA_PASO_A_PASO.md).
+
 1. Subir el proyecto a un repo de GitHub (con `model/modelo_riesgo.joblib` incluido).
 2. vercel.com → Add New… → Project → importar el repo → Deploy.
 3. Cada `git push` a `main` vuelve a desplegar.
